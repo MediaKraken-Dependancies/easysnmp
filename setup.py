@@ -6,6 +6,7 @@ from setuptools import setup, Extension
 from setuptools.command.test import test as TestCommand
 
 # Determine if a base directory has been provided with the --basedir option
+basedir = None
 in_tree = False
 # Add compiler flags if debug is set
 compile_args = ['-Wno-unused-function']
@@ -39,6 +40,19 @@ else:
     libdirs = [flag[2:] for flag in shlex.split(netsnmp_libs) if flag.startswith('-L')]  # noqa
     incdirs = []
 
+    if sys.platform == 'darwin':  # OS X
+        brew = os.popen('brew info net-snmp').read()
+        if 'command not found' not in brew and 'error' not in brew:
+            # /usr/local/opt is the default brew `opt` prefix, however the user
+            # may have installed it elsewhere. The `brew info <pkg>` includes
+            # an apostrophe, which breaks shlex. We'll simply replace it
+            libdirs = [flag[2:] for flag in shlex.split(brew.replace('\'', '')) if flag.startswith('-L')]    # noqa
+            incdirs = [flag[2:] for flag in shlex.split(brew.replace('\'', '')) if flag.startswith('-I')]    # noqa
+            # The homebrew version also depends on the Openssl keg
+            brew = os.popen('brew info openssl').read()
+            libdirs += [flag[2:] for flag in shlex.split(brew.replace('\'', '')) if flag.startswith('-L')]    # noqa
+            incdirs += [flag[2:] for flag in shlex.split(brew.replace('\'', '')) if flag.startswith('-I')]    # noqa
+
 
 # Setup the py.test class for use with the test command
 class PyTest(TestCommand):
@@ -67,13 +81,13 @@ with open('README.rst') as f:
 
 setup(
     name='easysnmp',
-    version='0.2.5-dev',
+    version='0.2.5',
     description='A blazingly fast and Pythonic SNMP library based on the '
                 'official Net-SNMP bindings',
     long_description=long_description,
-    author='Fotis Gimian',
-    author_email='fgimiansoftware@gmail.com',
-    url='https://github.com/fgimian/easysnmp',
+    author='Kent Coble',
+    author_email='coblekent@gmail.com',
+    url='https://github.com/kamakazikamikaze/easysnmp',
     license='BSD',
     packages=['easysnmp'],
     tests_require=['pytest-cov', 'pytest-flake8', 'pytest-sugar', 'pytest'],
@@ -95,6 +109,8 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Topic :: System :: Networking',
         'Topic :: System :: Networking :: Monitoring'
     ]
